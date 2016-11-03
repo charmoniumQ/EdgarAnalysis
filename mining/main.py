@@ -1,9 +1,16 @@
+from cache import download
 from itertools import islice
 from retrieve_index import get_index
+from retrieve_10k import SGML_to_files, get_risk_factors
 
-# get the master index for the third quarter of 2016
-# the first time you run this, it will take a long time to download the data
-# every subsequent time, it will use the cached data
-index = get_index(2016, 3, 'master')
-for i, row in zip(range(0, 10), index):
-    print(row['Company Name'])
+form_index = get_index(2016, 3, 'form')
+while next(form_index)['Form Type'] != '10-K':
+    pass
+print("Press enter for another risk factor. Press 'q' to quit.")
+while input() == '':
+    index_info = next(form_index)
+    path = index_info['Filename']
+    print('Risk factors for ' + index_info['Company Name'])
+    print('-'*70)
+    print(get_risk_factors(path)[:400])
+    print('\n')

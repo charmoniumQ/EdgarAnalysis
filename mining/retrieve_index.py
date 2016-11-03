@@ -95,7 +95,7 @@ if __name__ == '__main__':
     form_index = get_index(2016, 3, 'form')
     while next(form_index)['Form Type'] != '10-K':
         pass
-    print(next(form_index))
-        
+    while input() == '':
+        print(next(form_index))
 
 __all__ = ['get_index']
