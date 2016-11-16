@@ -76,12 +76,8 @@ Caches are stored in data/ directory
 
     year: a string or int 4-digit year
     qtr: a string or int between 1 and 4
-    index: either 'company', 'master', or 'form'
-    filename: save the result as the given filename
     See ftp://ftp.sec.gov/edgar/full-index/2016/QTR3/'''
 
-    if index not in indexes:
-        raise ValueError('Cannot download the index {index}, must be {indexes!s}'.format(**locals()))
     year = int(year)
     qtr = int(qtr)
     if not (1 <= qtr <= 4):

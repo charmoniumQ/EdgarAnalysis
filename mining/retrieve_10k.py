@@ -113,4 +113,3 @@ if __name__ == '__main__':
     # extract_to_disk('output3', files)
     b = parse_10k(files)
     print({key: len(val) for key, val in b.items()})
-    
