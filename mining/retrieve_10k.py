@@ -34,7 +34,7 @@ def SGML_to_files(sgml_contents):
 
 def html_to_text(textin):
     '''Extract real text from HTML, after removing table of contents'''
-    doc = BeautifulSoup(textin, 'html.parser')
+    html_10k = BeautifulSoup(textin, 'html.parser')
     text = html_10k.text.replace('\xa0', ' ') # &nbsp -> ' '
     text = re.sub('\n{2,}', '\n', text)
     text = re.sub('  +', ' ', text)
@@ -82,9 +82,8 @@ def extract_to_disk(directory, files):
     '''Extracts all files in the list of dicts (one for each file) into the directory for manual examination'''
     mkdir(directory)
     for file in files:
-        for tag, content in file.items():
-            if tag != 'text':
-                print(tag + ': ' + content)
+        if file['type'] == '10-K':
+            print(file['filename'])
         try:
             dfname = join(directory, file['filename'])
             with open(dfname, 'wb') as f:
@@ -97,6 +96,10 @@ def get_risk_factors(path):
     files = SGML_to_files(sgml.read())
     sgml.close()
     print('Parsed SGML document')
+    try:
+        extract_to_disk(path.split('/')[2], files)
+    except:
+        pass
     risk_factors = parse_10k(files)['1A']
     return risk_factors
 

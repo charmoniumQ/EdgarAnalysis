@@ -12,5 +12,10 @@ while input() == '':
     path = index_info['Filename']
     print('Risk factors for ' + index_info['Company Name'])
     print('-'*70)
-    print(get_risk_factors(path)[:400])
+    try:
+        print(get_risk_factors(path)[:400])
+    except Exception as e:
+        print('Unable to get')
+        print(path)
+        print(e)
     print('\n')

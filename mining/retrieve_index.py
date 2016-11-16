@@ -48,7 +48,7 @@ types = {
     'Form Type': str,
     'Company Name': str,
     'CIK': int,
-    'Date Filed': lambda s: datetime.strptime('2016-09-08', '%Y-%m-%d').date(),
+    'Date Filed': lambda s: datetime.strptime(s, '%Y-%m-%d').date(),
     'Filename': str,
 }
 aliases = {
@@ -69,7 +69,7 @@ def parse_index(index_file):
         # convert type of elem using the function associated with its column heading
         yield {heading: types[heading](elem) for heading, elem in zip(col_headings, elems)}
 
-def get_index(year, qtr, index):
+def get_index(year, qtr, company=None):
     '''Download the given index and cache it to disk.
 If a cached copy is available, use that instead.
 Caches are stored in data/ directory
@@ -87,14 +87,19 @@ Caches are stored in data/ directory
     if not (1 <= qtr <= 4):
         raise ValueError('Quarter must be between 1 and 4')
 
-    index_file = download_index(year, qtr, index)
-    yield from parse_index(index_file)
+    index_file = download_index(year, qtr, 'form')
+    for index_record in parse_index(index_file):
+        if index_record['Form Type'] == '10-K':
+            if not company:
+                yield index_record
+            else:
+                if company.upper() in index_record['Company Name'].upper():
+                    yield index_record
     index_file.close()
 
 if __name__ == '__main__':
     form_index = get_index(2016, 3, 'form')
-    while next(form_index)['Form Type'] != '10-K':
-        pass
+    print('Pres enter for another record')
     while input() == '':
         print(next(form_index))
 
