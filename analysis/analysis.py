@@ -2,8 +2,14 @@
 import json
 from watson_developer_cloud import AlchemyLanguageV1
 
+def getApiKey(file):
+    with open(file,'r') as fp:
+        authdict = json.load(fp)
+    return authdict['AlchemyAPIKey']
+
 def getAlchemyApi():
-    alchemy_language = AlchemyLanguageV1(api_key='APIKEY')
+    apikey = getApiKey('auth.json')
+    alchemy_language = AlchemyLanguageV1(api_key=apikey)
     return alchemy_language
 
 def slice_text(text):
