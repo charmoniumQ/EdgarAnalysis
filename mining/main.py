@@ -5,6 +5,7 @@ from retrieve_10k import SGML_to_files, get_risk_factors
 
 form_index = get_index(2016, 3)
 print("Press enter for another risk factor. Press 'q' to quit.")
+#list(islice(form_index, 6))
 while input() == '':
     index_info = next(form_index)
     path = index_info['Filename']
