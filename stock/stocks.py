@@ -54,8 +54,8 @@ def connect_to_db():
 def get_ticker(company_name):
     conn = connect_to_db()
     cur = conn.cursor()
-    rowcount = cur.execute("SELECT ticker from Company WHERE name like '%" + company_name.replace(' ','%') + "%'")
-    if rowcount > 0:
+    rows = cur.execute("SELECT ticker from Company WHERE name like '%" + company_name.replace(' ','%') + "%'")
+    if rows > 0:
         ticker = cur.fetchone()[0]
     else:
         ticker = ''
@@ -66,8 +66,8 @@ def get_ticker(company_name):
 def get_stock_quote(ticker, date):
     conn = connect_to_db()
     cur = conn.cursor()
-    cur.execute("SELECT adj_close FROM HistoricalData WHERE ticker = '" + ticker + "' AND date = '" + date + "'")
-    if cur.arraysize == 1:
+    rows = cur.execute("SELECT adj_close FROM HistoricalData WHERE ticker = '" + ticker + "' AND date = '" + date + "'")
+    if rows == 1:
         quote = cur.fetchone()[0]
     else:
         quote = 0
@@ -78,8 +78,20 @@ def get_stock_quote(ticker, date):
 def get_avg_stock_quote(ticker, start_date, end_date):
     conn = connect_to_db()
     cur = conn.cursor()
-    cur.execute("SELECT AVG(adj_close) FROM HistoricalData WHERE ticker = '" + ticker + "' AND date BETWEEN '" + start_date + "' AND '" + end_date + "'")
-    if cur.arraysize == 1:
+    rows = cur.execute("SELECT AVG(adj_close) FROM HistoricalData WHERE ticker = '" + ticker + "' AND date BETWEEN '" + start_date + "' AND '" + end_date + "'")
+    if rows == 1:
+        quote = cur.fetchone()[0]
+    else:
+        quote = 0
+    cur.close()
+    conn.close()
+    return quote
+
+def get_avg_qtr_stock_quote(ticker, year, quarter):
+    conn = connect_to_db()
+    cur = conn.cursor()
+    rows = cur.execute("SELECT AVG(adj_close) FROM HistoricalData WHERE ticker = '" + ticker + "' AND YEAR(date) = '" + str(year) + "' AND QUARTER(date) = '" + str(quarter) + "'")
+    if rows == 1:
         quote = cur.fetchone()[0]
     else:
         quote = 0
