@@ -34,15 +34,22 @@ def SGML_to_files(sgml_contents):
 
 def html_to_text(textin):
     '''Extract real text from HTML, after removing table of contents'''
+    textin = textin.decode()
+    newline_tags = 'p div tr'.split(' ')
+    newline_tags += [tag.upper() for tag in newline_tags]
+    textin = textin.replace('\n', ' ')
+    for tag in newline_tags:
+        textin = textin.replace('<' + tag, '\n<' + tag)
     html_10k = BeautifulSoup(textin, 'html.parser')
     text = html_10k.text.replace('\xa0', ' ') # &nbsp -> ' '
-    text = re.sub('\n{2,}', '\n', text)
     text = re.sub('  +', ' ', text)
     try:
         # text = re.sub(r'.*?^ ?part i$.*?^ ?part i *$', '', text, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE)
-        start = re.search('^ ?part i$', text, re.MULTILINE | re.IGNORECASE).end()
+        start = re.search('^ ?part i[\. \n]', text, re.MULTILINE | re.IGNORECASE).end()
+        print(start)
         text = text[start:]
-        start = re.search('^ ?part i *$', text, re.MULTILINE | re.IGNORECASE).end()
+        start = re.search('^ ?part i[\. \n]', text, re.MULTILINE | re.IGNORECASE).end()
+        print(start)
         text = text[start:]
     except:
         with open('crap.txt', 'w') as f:
@@ -62,8 +69,7 @@ def parse_10k(files):
         raise RuntimeError('Cannot find the 10K')
 
     text = html_to_text(file_info['text'])
-    print('Normalized text...')
-    # print(text[:1000])
+    # print('Normalized text...')
 
     contents = {}
     for name, item, next_item in zip(names, items[:-1], items[1:]):
@@ -72,9 +78,10 @@ def parse_10k(files):
         if not match:
             with open('crap.txt', 'w') as f:
                 f.write(text)
-            raise RuntimeError('Could not find {item}'.format(**locals()))
-        contents[name] = match.group(2)
-        text = text[match.end():]
+            print('Could not find {item}'.format(**locals()))
+        else:
+            contents[name] = match.group(2)
+            text = text[match.end():]
     return contents
 
 
@@ -95,17 +102,15 @@ def get_risk_factors(path):
     sgml = download(path)
     files = SGML_to_files(sgml.read())
     sgml.close()
-    print('Parsed SGML document')
-    try:
-        extract_to_disk(path.split('/')[2], files)
-    except:
-        pass
+    # print('Parsed SGML document')
+    # try:
+    #     extract_to_disk(path.split('/')[2], files)
+    # except:
+    #     pass
     risk_factors = parse_10k(files)['1A']
     return risk_factors
 
 if __name__ == '__main__':
-    # a = download('edgar/data/1503518/0001047469-16-015101.txt')
-    # a = download('edgar/data/1221554/0001144204-16-112910.txt')
     a = download('edgar/data/1382219/0001185185-16-004954.txt')
     files = SGML_to_files(a.read())
     a.close()
