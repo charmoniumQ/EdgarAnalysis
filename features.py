@@ -9,8 +9,6 @@ from retrieve_index import get_index
 os.chdir('..')
 
 
-#year = 2016
-#quarter = 3
 
 def get_viable_index(form_index):
     ticker = ''
@@ -40,6 +38,12 @@ def get_last_qtr_stock_quote(ticker, year, qtr):
        year -= 1
     return get_avg_qtr_stock_quote(ticker, year, last_qtr)
 
+def get_next_qtr_stock_quote(ticker, year, qtr):
+    next_qtr = (qtr % 4) + 1
+    if next_qtr == 1:
+       year += 1
+    return get_avg_qtr_stock_quote(ticker, year, next_qtr)
+
 def get_predict_features(year, quarter, ticker, path):
     risk_factors = get_risk_factors(path)
     emotions = emotion_analysis(risk_factors)
@@ -60,7 +64,7 @@ def get_training_features(year, quarter, ticker, path): #we want to predict stoc
     emotions = emotion_analysis(risk_factors)
     sentiment = sentiment_analysis(risk_factors)
     qtr_stock_price = get_avg_qtr_stock_quote(ticker,year,quarter)
-    improvement = qtr_stock_price - get_last_qtr_stock_quote(ticker,year,quarter)
+    improvement = get_next_qtr_stock_quote(ticker,year,quarter) - qtr_stock_price
     features = {'anger': emotions['anger'],
                 'disgust': emotions['disgust'],
                 'fear': emotions['fear'],

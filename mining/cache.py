@@ -1,6 +1,7 @@
 from urllib.request import urlopen
 from os import mkdir
 from os.path import join, isdir, isfile
+from time import sleep
 
 CACHE_DIR = 'edgar-downloads'
 
@@ -18,7 +19,14 @@ def download_no_cache(path):
     '''Download a file without attempting to read or write from the cache'''
     print('cache.py: downloading {path}'.format(**locals()))
     url_path = 'ftp://ftp.sec.gov/' + path
-    raw_file = urlopen(url_path.format(**locals())).read()
+    download = False
+    while not download:
+        try:
+             raw_file = urlopen(url_path.format(**locals())).read()
+             download = True
+        except:
+            download = False
+            sleep(1.0)
     print('cache.py: done downloading {path}'.format(**locals()))
     return raw_file
 
