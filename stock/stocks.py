@@ -54,7 +54,7 @@ def connect_to_db():
 def get_ticker(company_name):
     conn = connect_to_db()
     cur = conn.cursor()
-    rows = cur.execute("SELECT ticker from Company WHERE name like '%" + company_name.replace(' ','%') + "%'")
+    rows = cur.execute("SELECT ticker from Company WHERE name like '%" + company_name.replace("'","''").replace(' ','%') + "%'")
     if rows > 0:
         ticker = cur.fetchone()[0]
     else:

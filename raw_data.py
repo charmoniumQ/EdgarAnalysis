@@ -37,6 +37,8 @@ def raw_data_generator(year, quarter, n=1, offset=0): #n is the number of record
                 print("record " + str(record_no) + " " + company[0])
             except KeyboardInterrupt:					
                 raise StopIteration
+            except GeneratorExit:
+                raise StopIteration
             except:
                 print("skipping 1 due to " + str(sys.exc_info()[0]) + ", " + str(sys.exc_info()[1]))
                 #raise StopIteration
@@ -46,7 +48,7 @@ def get_and_store_raw_data_into_db(year, quarter, n=1, offset=0):
     conn = connect_to_db()
     for data in raw_data_generator(year,quarter,n,offset):
         store_raw_row_into_db(conn,data)
-    conn.commit()
+        conn.commit()
     conn.close()
         
 def get_raw_data(year, quarter, n=1, offset=0): #n is the number of records you want 
@@ -88,8 +90,11 @@ def connect_to_db():
     return conn
 
 def store_raw_row_into_db(conn, data):
-    sql = "INSERT INTO raw_data (name, year, quarter, improvement, risk_factors, ticker) VALUES ('{name}', {year}, {quarter}, {stock_improvement}, '{risk_factors}', '{ticker}')".format(name=conn.escape_string(data['name']),year=data['year'],quarter=data['quarter'],stock_improvement=data['stock_improvement'],risk_factors=conn.escape_string(data['risk_factors']),ticker=data['ticker']) 
-    conn.query(sql)
+    try:
+        sql = "INSERT INTO raw_data (name, year, quarter, improvement, risk_factors, ticker) VALUES ('{name}', {year}, {quarter}, {stock_improvement}, '{risk_factors}', '{ticker}')".format(name=conn.escape_string(data['name']),year=data['year'],quarter=data['quarter'],stock_improvement=data['stock_improvement'],risk_factors=conn.escape_string(data['risk_factors']),ticker=data['ticker']) 
+        conn.query(sql)
+    except pymysql.IntegrityError:
+        pass
 
 def store_raw_array_into_db(data_array):
     conn = connect_to_db()
