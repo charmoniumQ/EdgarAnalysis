@@ -58,8 +58,8 @@ def training_data_generator(year, quarter, n=1, offset=0): #n is the number of r
                 print("record " + str(record_no) + " " + company[0])
             except KeyboardInterrupt:
                 raise StopIteration
-            except:
-                print("skipping 1 due to " + str(sys.exc_info()[0]) + ", " + str(sys.exc_info()[1]))
+            #except:
+                #print("skipping " + company[0] + " due to " + str(sys.exc_info()[0]))
         record_no += 1
 
 def get_training_data(year, quarter, n=1, offset=0): #n is the number of records you want 
@@ -183,11 +183,11 @@ def extract_features_from_raw(data):
 
 def extract_features_from_raw_array(raw_array):
     for x in raw_array:
-        try:
+        #try:
             yield extract_features_from_raw(x)
             print('analyzing ' + x['name'])
-        except KeyError:
-            print('skipping 1 due to KeyError')
+        #except KeyError:
+        #    print('skipping 1 due to KeyError')
 
 def store_feature_row_into_db(conn, data):
     try:
@@ -208,9 +208,12 @@ def store_feature_array_into_db(data_array):
 #        pass
     conn.close()
 
-def retrieve_feature_data(year, quarter, limit, offset=0):
+def retrieve_feature_data(limit,year=None,offset=0):
     conn = connect_to_db()
-    sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE year = {year} AND quarter = {quarter} LIMIT {limit} OFFSET {offset}".format(year=str(year),quarter=str(quarter),limit=str(limit),offset=str(offset))
+    if year is not None:
+        sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE year = {year} LIMIT {limit} OFFSET {offset}".format(year=str(year),limit=str(limit),offset=str(offset))
+    else:
+        sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE year = {year} LIMIT {limit} OFFSET {offset}".format(year=str(year),limit=str(limit),offset=str(offset))
     cur = conn.cursor()
     cur.execute(sql)
     rows = cur.fetchall()
