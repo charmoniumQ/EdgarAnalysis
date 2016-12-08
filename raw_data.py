@@ -103,9 +103,30 @@ def store_raw_array_into_db(data_array):
     conn.commit()
     conn.close()
 
-def retrieve_raw_data(count, offset=0):
+def retrieve_raw_data(year=None, quarter=None, count=99999, offset=0, check_analyzed=True):
     conn = connect_to_db()
-    sql = "SELECT name, year, quarter, improvement, risk_factors, ticker FROM raw_data LIMIT " + str(count) + " OFFSET " + str(offset)
+    if not year is None:
+        if not quarter is None:
+            if check_analyzed:
+                sql = "SELECT r.name, r.year, r.quarter, r.improvement, r.risk_factors, r.ticker FROM raw_data r LEFT JOIN features f ON f.name = r.name AND r.year = f.year AND r.quarter = f.quarter WHERE r.year = " + str(year) + " AND r.quarter = " + str(quarter) + " AND f.name IS NULL LIMIT " + str(count) + " OFFSET " + str(offset)
+            else:
+                sql = "SELECT name, year, quarter, improvement, risk_factors, ticker FROM raw_data WHERE year = " + str(year) + " AND quarter = " + str(quarter) + " LIMIT " + str(count) + " OFFSET " + str(offset)
+        else:
+            if check_analyzed:
+                sql = "SELECT r.name, r.year, r.quarter, r.improvement, r.risk_factors, r.ticker FROM raw_data r LEFT JOIN features f ON f.name = r.name AND r.year = f.year AND r.quarter = f.quarter WHERE r.year = " + str(year) + " AND f.name IS NULL LIMIT " + str(count) + " OFFSET " + str(offset)
+            else:
+                sql = "SELECT name, year, quarter, improvement, risk_factors, ticker FROM raw_data WHERE year = " + str(year) +  " LIMIT " + str(count) + " OFFSET " + str(offset)
+    else:
+        if not quarter is None:
+            if check_analyzed:
+                sql = "SELECT r.name, r.year, r.quarter, r.improvement, r.risk_factors, r.ticker FROM raw_data r LEFT JOIN features f ON f.name = r.name AND r.year = f.year AND r.quarter = f.quarter WHERE r.quarter = " + str(quarter) + " AND f.name IS NULL LIMIT " + str(count) + " OFFSET " + str(offset)
+            else:
+                sql = "SELECT name, year, quarter, improvement, risk_factors, ticker FROM raw_data WHERE quarter = " + str(quarter) + " LIMIT " + str(count) + " OFFSET " + str(offset)
+        else:
+            if check_analyzed:
+                sql = "SELECT r.name, r.year, r.quarter, r.improvement, r.risk_factors, r.ticker FROM raw_data r LEFT JOIN features f ON f.name = r.name AND r.year = f.year AND r.quarter = f.quarter WHERE f.name IS NULL LIMIT " + str(count) + " OFFSET " + str(offset)
+            else:
+                sql = "SELECT name, year, quarter, improvement, risk_factors, ticker FROM raw_data LIMIT " + str(count) + " OFFSET " + str(offset)
     cur = conn.cursor()
     cur.execute(sql)
     rows = cur.fetchall()

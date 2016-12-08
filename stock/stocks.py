@@ -54,7 +54,12 @@ def connect_to_db():
 def get_ticker(company_name):
     conn = connect_to_db()
     cur = conn.cursor()
-    rows = cur.execute("SELECT ticker from Company WHERE name like '%" + company_name.replace("'","''").replace(' ','%') + "%'")
+    #sql = "SELECT ticker from Company WHERE LOWER(REPLACE(REPLACE(REPLACE(CONCAT('%',name,'%'),' ','%'),'\'',''),',','')) LIKE '{name}'"
+    sql = "SELECT ticker from Company WHERE LOWER(REPLACE(REPLACE(REPLACE(CONCAT('%',name,'%'),' ','%'),'\\'',''),',','')) LIKE LOWER(REPLACE(REPLACE(CONCAT('%','{name}','%'),' ','%'),',',''))"
+    query = sql.format(name=company_name.replace("'",""))
+    #print(query)
+    rows = cur.execute(query)
+    #rows = cur.execute("SELECT ticker from Company WHERE name like '%" + company_name.replace("'","''").replace(' ','%') + "%'")
     if rows > 0:
         ticker = cur.fetchone()[0]
     else:

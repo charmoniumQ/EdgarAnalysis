@@ -65,9 +65,14 @@ def parse_index(index_file):
     col_headings = [word if word not in aliases else aliases[word] for word in col_headings]
     next(index_file) # skip the line with dashes
     for line in index_file:
-        elems = normalize(line)
-        # convert type of elem using the function associated with its column heading
-        yield {heading: types[heading](elem) for heading, elem in zip(col_headings, elems)}
+       	elems = normalize(line)
+       	# convert type of elem using the function associated with its column heading
+#        try:
+        #I'm just going to cast it as str, because it's failing with int
+        yield {heading: str(elem) for heading, elem in zip(col_headings, elems)}
+#        except ValueError:
+#            print("skipping index, dont know what's wrong")
+
 
 def get_index(year, qtr, company=None):
     '''Download the given index and cache it to disk.

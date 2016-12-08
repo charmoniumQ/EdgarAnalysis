@@ -218,5 +218,20 @@ def retrieve_feature_data(year, quarter, limit, offset=0):
     conn.close()
     return [{'name':row[0], 'year':row[1], 'quarter':row[2], 'stock_improvement':row[3], 'anger':row[4], 'disgust':row[5], 'fear':row[6], 'joy':row[7], 'sadness':row[8], 'sentiment':row[9], 'sentiment_type':row[10], 'ticker':row[11]} for row in rows]
 
-def analyze_and_store_raw_raw_data(year, quarter, limit=99999, offset=0):
-    store_feature_array_into_db(extract_features_from_raw_array(retrieve_raw_data(limit, offset)))    
+def analyze_and_store_raw_raw_data(year=None, quarter=None, limit=99999, offset=0):
+    store_feature_array_into_db(extract_features_from_raw_array(retrieve_raw_data(year, quarter, limit, offset)))    
+
+def retrieve_features_for_company(name,year):
+    ticker = get_ticker(name)
+    conn = connect_to_db()
+    sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE LOWER(REPLACE(REPLACE(REPLACE(CONCAT('%',name,'%'),' ','%'),'\\'',''),',','')) LIKE LOWER(REPLACE(REPLACE(CONCAT('%','{name}','%'),' ','%'),',','')) AND year = {year} AND ticker = '{ticker}'".format(name=name,year=str(year),ticker=ticker)
+    cur = conn.cursor()
+    num_rows = cur.execute(sql)
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    if num_rows == 0:
+        print('Cannot find "{name}" in the database for {year}'.format(name=name,year=year))
+        return None
+    return {'name':row[0], 'year':row[1], 'quarter':row[2], 'stock_improvement':row[3], 'anger':row[4], 'disgust':row[5], 'fear':row[6], 'joy':row[7], 'sadness':row[8], 'sentiment':row[9], 'sentiment_type':row[10], 'ticker':row[11]}
+    
