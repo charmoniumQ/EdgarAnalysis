@@ -14,7 +14,8 @@ def get_viable_index(form_index):
     ticker = ''
     for index_info in form_index:
         company_name = index_info['Company Name']
-        ticker = get_ticker(company_name)
+        idx = company_name.find('\\') - 1
+        ticker = get_ticker(company_name if idx < 0 else company_name[:idx])
         if ticker != '':
             yield (company_name, ticker, index_info['Filename'])
 
