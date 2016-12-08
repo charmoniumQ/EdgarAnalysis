@@ -77,7 +77,10 @@ def sentiment_analysis(text): # [-1, 1] <0 = negative, 0 = neutral, 1 = positive
     for chunk in chunks:
         sentiment_json = ApiHandler().smartApiRequest('sentiment',text=chunk)
         sentiment = sentiment_json['docSentiment']
-        average_sentiment_score += float(sentiment['score'])
+        if 'score' in sentiment:
+            average_sentiment_score += float(sentiment['score'])
+        else:
+           average_sentiment_score += -1 if sentiment['type'] == 'negative' else 1
     average_sentiment_score = average_sentiment_score / len(chunks)
     return average_sentiment_score
 
