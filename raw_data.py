@@ -18,7 +18,7 @@ def get_viable_index(form_index):
         if ticker != '':
             yield (company_name, ticker, index_info['Filename'])
 
-def raw_data_generator(year, quarter, n=1, offset=0): #n is the number of records you want 
+def raw_data_generator(year, quarter, n=1, offset=0, check_raw=True): #n is the number of records you want 
     form_index = get_index(year, quarter) # we might want to turn this into a generation function
     record_no = 1
     num_retrieved = 0
@@ -28,6 +28,8 @@ def raw_data_generator(year, quarter, n=1, offset=0): #n is the number of record
         else:
             if (num_retrieved  == n): 
                 raise StopIteration
+            if (check_raw and check_raw_exists(company[0],year)):
+                continue
             try:
                 raw_features = get_raw_features(year,quarter, company[1], company[2])
                 yield {'name':company[0], 'year':year, 'quarter':quarter, 'ticker':company[1],
@@ -43,6 +45,21 @@ def raw_data_generator(year, quarter, n=1, offset=0): #n is the number of record
                 print("skipping 1 due to " + str(sys.exc_info()[0]) + ", " + str(sys.exc_info()[1]))
                 #raise StopIteration
         record_no += 1
+
+def check_raw_exists(name, year):
+    sql = "SELECT count(*) FROM raw_data r WHERE r.year = {year} AND r.name = '{name}'" 
+    query = sql.format(year=year,name=name.replace("'","''"))
+    conn = connect_to_db()
+    cur = conn.cursor()
+    cur.execute(query)
+    row = cur.fetchone()
+    val = row[0]
+    cur.close()
+    conn.close()    
+    if int(val) > 0: #should only ever be 0 or 1 
+        return True
+    return False
+    
         
 def get_and_store_raw_data_into_db(year, quarter, n=1, offset=0):
     conn = connect_to_db()
@@ -104,7 +121,6 @@ def store_raw_array_into_db(data_array):
     conn.close()
 
 def retrieve_raw_data(year=None, quarter=None, count=99999, offset=0, check_analyzed=True):
-    conn = connect_to_db()
     if not year is None:
         if not quarter is None:
             if check_analyzed:
@@ -127,6 +143,7 @@ def retrieve_raw_data(year=None, quarter=None, count=99999, offset=0, check_anal
                 sql = "SELECT r.name, r.year, r.quarter, r.improvement, r.risk_factors, r.ticker FROM raw_data r LEFT JOIN features f ON f.name = r.name AND r.year = f.year AND r.quarter = f.quarter WHERE f.name IS NULL LIMIT " + str(count) + " OFFSET " + str(offset)
             else:
                 sql = "SELECT name, year, quarter, improvement, risk_factors, ticker FROM raw_data LIMIT " + str(count) + " OFFSET " + str(offset)
+    conn = connect_to_db()
     cur = conn.cursor()
     cur.execute(sql)
     rows = cur.fetchall()
