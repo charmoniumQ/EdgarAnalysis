@@ -210,10 +210,10 @@ def store_feature_array_into_db(data_array):
 
 def retrieve_feature_data(limit,year=None,offset=0):
     conn = connect_to_db()
-    if year is not None:
+    if not year is None:
         sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE year = {year} LIMIT {limit} OFFSET {offset}".format(year=str(year),limit=str(limit),offset=str(offset))
     else:
-        sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE year = {year} LIMIT {limit} OFFSET {offset}".format(year=str(year),limit=str(limit),offset=str(offset))
+        sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features LIMIT {limit} OFFSET {offset}".format(,limit=str(limit),offset=str(offset))
     cur = conn.cursor()
     cur.execute(sql)
     rows = cur.fetchall()
