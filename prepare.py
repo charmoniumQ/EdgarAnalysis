@@ -56,17 +56,17 @@ def sharpe(pos, Y):
     return np.sum(delta) / np.std(delta)
 
 def debug():
-    np.set_printoptions(precision=2, linewidth=150, suppress=True)
     year = None
+    total = 3000
     train = 1000
-    test = 1000
+    random_state = 42
 
-    data = retrieve_feature_data(train + test, year)
-    print("Using {} / {} datapoints".format(train + test, len(data)))
+    np.set_printoptions(precision=2, linewidth=150, suppress=True)
+    data = retrieve_feature_data(total, year)
+    assert total == len(data), 'only got {} out of {} datapoints from server'.format(len(data), total)
 
     X, Y = to_matrix(data)
-    trainX, trainY = X[train:], Y[train:]
-    testX, testY = X[:train], Y[:train]
+    trainX, testX, trainY, testY = train_test_split(X, Y, train_size=train/total, random_state=random_state)
     # print('data = \n{!s}'.format(np.hstack((trainX, trainY))))
     reg = LinearRegression()
     reg.fit(trainX, trainY)
@@ -113,13 +113,13 @@ def convergence(minN, maxN, spaceN, testN, mult):
     plt.savefig('convergence.png')
     plt.close()
 
-def cross_val(N=4000, k=60):
+def cross_val(N=4000, M=1000, k=60, ranodm_state=42):
     X, Y = to_matrix(retrieve_feature_data(N, None))
     reg = LinearRegression()
 
     def my_cv(scoring):
         # http://scikit-learn.org/stable/modules/cross_validation.html
-        return cross_val_score(reg, X, Y, cv=k, scoring=scoring)
+        return cross_val_score(reg, X, Y, cv=ShuffleSplit(n_splits=k, train_size=M/N, random_state=random_state), scoring=scoring)
 
     MSE = my_cv(lambda f, X, Y: mse(f.predict(X), Y))
     plt.figure()
@@ -133,12 +133,12 @@ def cross_val(N=4000, k=60):
 
     r = my_cv(lambda f, X, Y: 100 * (np.sum(returns(position(f.predict(X)), Y)) - 1))
     plt.figure()
-    plt.title('Returns in {k}-fold cross validation'.format(**locals()))
+    plt.title('Return in {k}-fold cross validation'.format(**locals()))
     plt.ylabel('Frequency')
-    plt.xlabel('Returns (%)')
+    plt.xlabel('Return (%)')
     print(np.mean(r), np.median(r))
     plt.hist(r, bins=10, normed=True)
-    plt.savefig('returns.png')
+    plt.savefig('return.png')
     plt.close()
 
     s = my_cv(lambda f, X, Y: sharpe(position(f.predict(X)), Y))
@@ -149,6 +149,16 @@ def cross_val(N=4000, k=60):
     print(np.mean(s), np.median(s))
     plt.hist(s, bins=10, normed=True)
     plt.savefig('sharpe.png')
+    plt.close()
+
+    r = my_cv(lambda f, X, Y: 100 * (np.sum(returns(position(f.predict(X)), Y) - benchmark(Y))))
+    plt.figure()
+    plt.title('Adjusted return in {k}-fold cross validation'.format(**locals()))
+    plt.ylabel('Frequency')
+    plt.xlabel('Adjusted Return (%)')
+    print(np.mean(r), np.median(r))
+    plt.hist(r, bins=10, normed=True)
+    plt.savefig('adj_return.png')
     plt.close()
 
 if __name__ == '__main__':
