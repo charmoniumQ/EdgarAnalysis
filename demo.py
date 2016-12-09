@@ -2,29 +2,11 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from features import retrieve_feature_data, retrieve_features_for_company
 from stock.stocks import get_stock_quote, get_avg_stock_quote
-
-def s(x):
-    '''Maps [0, 1] to [0, in)'''
-    return np.tan(x * np.pi / 2)
-
-def to_matrix(data):
-    '''Loads a list of dicts into a matrix of input (X) and output (Y) suitable for use with scikit learn'''
-    X = np.zeros((len(data), 7))
-    Y = np.zeros((len(data), 1))
-    for i, datum in enumerate(data):
-        X[i][0] = s(datum['anger'])
-        X[i][1] = s(datum['disgust'])
-        X[i][2] = s(datum['fear'])
-        X[i][3] = s(datum['joy'])
-        X[i][4] = s(datum['sadness'])
-        X[i][5] = s((datum['sentiment'] + 1) / 2)
-        X[i][6] = datum['sentiment_type']
-        Y[i][0] = datum['stock_improvement']
-    return np.clip(X, -1, 10), Y
+from prepare import s, to_matrix, power
 
 def fit(total):
     data = retrieve_feature_data(total, rand=False)
-    X, Y = to_matrix(data)
+    X, Y = to_matrix(data, power)
     reg = LinearRegression()
     reg.fit(X, Y)
     return reg
@@ -40,8 +22,8 @@ def demo(year,reg):
         else:
             cdata = retrieve_features_for_company(cmd,year)
             if not cdata is None:
-                X, Y = to_matrix([cdata])
-                pred = reg.predict(X).tolist()[0][0]
+                X, Y = to_matrix([cdata], power)
+                pred = reg.predict(X).tolist()[0][0] ** (1/power)
                 avg = get_avg_stock_quote(cdata['ticker'],'2016-01-01','2016-06-30')
                 act = avg * cdata['stock_improvement']
                 pre = avg * pred
