@@ -204,12 +204,13 @@ def store_feature_array_into_db(data_array):
 #        pass
     conn.close()
 
-def retrieve_feature_data(limit,year=None,offset=0):
+def retrieve_feature_data(limit,year=None,offset=0,rand=True):
     conn = connect_to_db()
     if not year is None:
-        sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE year = {year} AND UseBit = 1 LIMIT {limit} OFFSET {offset}".format(year=str(year),limit=str(limit),offset=str(offset))
+        sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE year = {year} AND UseBit = 1 ORDER BY RAND() LIMIT {limit} OFFSET {offset}".format(year=str(year),limit=str(limit),offset=str(offset))
     else:
-        sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE UseBit = 1 LIMIT {limit} OFFSET {offset}".format(limit=str(limit),offset=str(offset))
+        sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE UseBit = 1 ORDER BY RAND() LIMIT {limit} OFFSET {offset}".format(limit=str(limit),offset=str(offset))
+    if not rand: sql = sql.replace("ORDER BY RAND()",'')
     cur = conn.cursor()
     cur.execute(sql)
     rows = cur.fetchall()
@@ -220,11 +221,10 @@ def retrieve_feature_data(limit,year=None,offset=0):
 def analyze_and_store_raw_raw_data(year=None, quarter=None, limit=99999, offset=0):
     store_feature_array_into_db(extract_features_from_raw_array(retrieve_raw_data(year, quarter, limit, offset)))    
 
-def retrieve_features_for_company(name,year, rand=True):
+def retrieve_features_for_company(name,year):
     ticker = get_ticker(name)
     conn = connect_to_db()
     sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE LOWER(REPLACE(REPLACE(REPLACE(CONCAT('%',name,'%'),' ','%'),'\\'',''),',','')) LIKE LOWER(REPLACE(REPLACE(CONCAT('%','{name}','%'),' ','%'),',','')) AND year = {year} AND ticker = '{ticker}'".format(name=name,year=str(year),ticker=ticker)
-    if rand: sql += " ORDER BY RAND()"
     cur = conn.cursor()
     num_rows = cur.execute(sql)
     row = cur.fetchone()
@@ -235,3 +235,4 @@ def retrieve_features_for_company(name,year, rand=True):
         return None
     return {'name':row[0], 'year':row[1], 'quarter':row[2], 'stock_improvement':row[3], 'anger':row[4], 'disgust':row[5], 'fear':row[6], 'joy':row[7], 'sadness':row[8], 'sentiment':row[9], 'sentiment_type':row[10], 'ticker':row[11]}
     
+
