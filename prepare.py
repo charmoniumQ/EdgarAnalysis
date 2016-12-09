@@ -2,12 +2,15 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split, cross_val_score, ShuffleSplit
 from features import retrieve_feature_data
+import matplotlib.pyplot as plt
+
+random_state=42
 
 def s(x):
-    '''Maps [0, 1] to [0, in)'''
+    '''Maps [0, 1] to [0, inf)'''
     return np.tan(x * np.pi / 2)
 
-def to_matrix(data):
+def to_matrix(data, power):
     '''Loads a list of dicts into a matrix of input (X) and output (Y) suitable for use with scikit learn'''
     X = np.zeros((len(data), 7))
     Y = np.zeros((len(data), 1))
@@ -19,7 +22,7 @@ def to_matrix(data):
         X[i][4] = s(datum['sadness'])
         X[i][5] = s((datum['sentiment'] + 1) / 2)
         X[i][6] = datum['sentiment_type']
-        Y[i][0] = datum['stock_improvement']
+        Y[i][0] = datum['stock_improvement']**power
     return np.clip(X, -1, 10), Y
 
 def mse(Y1, Y2):
@@ -36,7 +39,8 @@ def position(predY, threshold=1, weight=True):
     # but drop ones less than thresh
     p[predY < threshold] = 0
     # normalize by the sum (to get a percent)
-    p /= np.sum(p)
+    if np.sum(p) > 0:
+        p = p / np.sum(p)
     return p
 
 def benchmark(Y):
@@ -57,44 +61,52 @@ def sharpe(pos, Y):
 
 def debug():
     year = None
-    total = 3000
+    total = 2000
     train = 1000
-    random_state = 38
+    power = 3
 
     np.set_printoptions(precision=2, linewidth=150, suppress=True)
     data = retrieve_feature_data(total, year)
     assert total == len(data), 'only got {} out of {} datapoints from server'.format(len(data), total)
 
-    print('Random state = {random_state}'.format(**locals()))
-    X, Y = to_matrix(data)
+    print('Random state = {random_state}'.format(**globals()))
+    X, Y = to_matrix(data, power)
     trainX, testX, trainY, testY = train_test_split(X, Y, train_size=train/total, random_state=random_state)
-    # print('data = \n{!s}'.format(np.hstack((trainX, trainY))))
+    # print('train data = \n{!s}'.format(np.hstack((trainX, trainY))))
     reg = LinearRegression()
     reg.fit(trainX, trainY)
 
     # predicted price increase factors
     predY = reg.predict(testX)
-    # print('error = \n{!s}'.format(np.hstack((predY, testY, (predY - testY)**2))))
+    # print('test data = \n{!s}'.format(np.hstack((testX, testY, predY))))
     print('Coefficients (x1e3) = {!s}'.format(reg.coef_ * 1e3))
 
-    print('Mean Squared Error = {:.4f}'.format(mse(predY, testY)))
-    pos = position(predY)
-    # print('Prediction, actual, benchmark, position, return = \n{!s}'.format(np.hstack((predY, testY, benchmark(testY), pos, returns(pos, testY)))))
-    print('Returns = {:.5f}%, Adjusted returns = {:.5f}%, with a Sharpe ratio of {:.2f}'
+    print('Mean Squared Error = {:.4f}'.format(mse(predY**(1/power), testY**(1/power))))
+    pos = position(predY, threshold=1.1)
+    print('Taking {} stocks'.format(np.sum(pos > 0)))
+    print('Prediction, actual, benchmark, position, return = \n{!s}'.format(np.hstack((predY, testY, benchmark(testY), pos, returns(pos, testY)))))
+    print('Return = {:.5f}%, Adjusted return = {:.5f}%, with a Sharpe ratio of {:.2f}'
           .format((np.sum(returns(pos, testY)) - 1) * 100,
                   np.sum(returns(pos, testY) - benchmark(testY)) * 100,
                   sharpe(pos, testY)))
+    # plt.figure()
+    # plt.hist((returns(pos, testY) - 1)*100)
+    # plt.savefig('return_hist.png')
+    # plt.close()
+    # plt.figure()
+    # plt.plot(predY)
+    # plt.plot(testY)
+    # plt.savefig('actual.png')
+    # plt.close()
 
-import matplotlib.pyplot as plt
-
-def convergence(minN, maxN, spaceN, testN, mult):
+def convergence(minN, maxN, spaceN, testN, mult, power=3):
     ns = np.arange(minN, maxN, spaceN)
     plt.figure()
     plt.xlabel('Number of data points')
     plt.title('Convergence of Ordinary Least Squares Regrssion')
 
     data = retrieve_feature_data(maxN + testN, None)
-    X, Y = to_matrix(data)
+    X, Y = to_matrix(data, power)
     testX, testY = X[-testN:], Y[-testN:]
     params = np.zeros_like(ns, dtype=np.float64)
     r2 = np.zeros_like(ns, dtype=np.float64)
@@ -105,64 +117,80 @@ def convergence(minN, maxN, spaceN, testN, mult):
         reg.fit(X[:n], Y[:n])
         params[i] = np.sum(((reg.coef_ - final) * mult)**2)
         r2[i] = reg.score(testX, testY)
-        m[i] = mse(reg.predict(testX), testY)
-    plt.plot(ns, params / params.max(), 'g', label=r'$\| \theta - \hat{\theta} \|$')
-    plt.plot(ns, -np.arctan(r2) / np.pi * 2 , 'r', label='$r^2$')
-    plt.plot(ns, m / m.max(), 'y', label=r'$\mathbb{E} \left[ (f_\theta(X) - \hat{Y})^2 \right]$')
+        m[i] = mse(np.clip(reg.predict(testX), 0, 10)**(1/power), testY**(1/power))
+    plt.plot(ns, params / params.max(), 'g', label=r'Parameter distance')
+    plt.plot(ns, -np.arctan(r2) / np.pi * 2 , 'r', label='Correlation coefficient')
+    plt.plot(ns, m / m.max(), 'y', label=r'Mean-squared error')
     plt.gca().set_yticklabels([])
     plt.legend()
     plt.savefig('convergence.png')
     plt.close()
 
-def cross_val(N=4000, M=1000, k=60, random_state=42):
-    X, Y = to_matrix(retrieve_feature_data(N, None))
+def parameter_tuning(end, step, N=4000, M=1000, k=30):
+    reg = LinearRegression()
+    powers = np.arange(1, end, step)
+    MSE = np.zeros(len(powers), dtype=np.float64)
+    sharpe2 = np.zeros(len(powers), dtype=np.float64)
+    data = retrieve_feature_data(N, None)
+    for i, power in enumerate(powers):
+        X, Y = to_matrix(data, power=power)
+        def my_cv(scoring):
+            # http://scikit-learn.org/stable/modules/cross_validation.html
+            return cross_val_score(reg, X, Y, cv=ShuffleSplit(n_splits=k, train_size=M/N, random_state=random_state), scoring=scoring)
+        MSE[i] = np.mean(my_cv(lambda f, X, Y: mse(np.clip(f.predict(X), 0, 10)**(1/power), Y**(1/power))))
+        sharpe2[i] = np.mean(my_cv(lambda f, X, Y: sharpe(position(f.predict(X), threshold=1.1), Y)))
+    print(MSE)
+    print(sharpe2)
+    plt.figure()
+    plt.xlabel('$p$')
+    plt.ylim(0, 1)
+    plt.plot(powers, MSE / MSE.max(), 'b', label=r'Mean Squared Error')
+    plt.plot(powers, sharpe2 / sharpe2.max(), 'y', label='Sharpe Ratio')
+    plt.legend()
+    plt.savefig('parameter.png')
+    plt.close()
+
+def cross_val(N=4000, M=1000, k=60, power=3):
+    X, Y = to_matrix(retrieve_feature_data(N, None), power)
     reg = LinearRegression()
 
     def my_cv(scoring):
         # http://scikit-learn.org/stable/modules/cross_validation.html
         return cross_val_score(reg, X, Y, cv=ShuffleSplit(n_splits=k, train_size=M/N, random_state=random_state), scoring=scoring)
 
-    MSE = my_cv(lambda f, X, Y: mse(f.predict(X), Y))
-    plt.figure()
-    plt.title('Mean squared error in {k}-fold cross validation'.format(**locals()))
-    plt.ylabel('Frequency')
-    plt.xlabel('MSE')
+    MSE = my_cv(lambda f, X, Y: mse(np.clip(f.predict(X), 0, 10)**(1/power), Y**(1/power)))
     print(np.mean(MSE), np.median(MSE))
-    plt.hist(MSE, bins=7, normed=True)
-    plt.savefig('mse.png')
-    plt.close()
-
-    r = my_cv(lambda f, X, Y: 100 * (np.sum(returns(position(f.predict(X)), Y)) - 1))
-    plt.figure()
-    plt.title('Return in {k}-fold cross validation'.format(**locals()))
-    plt.ylabel('Frequency')
-    plt.xlabel('Return (%)')
-    print(np.mean(r), np.median(r))
-    plt.hist(r, bins=10, normed=True)
-    plt.savefig('return.png')
-    plt.close()
-
-    s = my_cv(lambda f, X, Y: sharpe(position(f.predict(X)), Y))
-    plt.figure()
-    plt.title('Sharpe ratio in {k}-fold cross validation'.format(**locals()))
-    plt.ylabel('Frequency')
-    plt.xlabel('Sharpe')
-    print(np.mean(s), np.median(s))
-    plt.hist(s, bins=10, normed=True)
-    plt.savefig('sharpe.png')
-    plt.close()
-
     r = my_cv(lambda f, X, Y: 100 * (np.sum(returns(position(f.predict(X)), Y) - benchmark(Y))))
-    plt.figure()
-    plt.title('Adjusted return in {k}-fold cross validation'.format(**locals()))
-    plt.ylabel('Frequency')
-    plt.xlabel('Adjusted Return (%)')
     print(np.mean(r), np.median(r))
-    plt.hist(r, bins=10, normed=True)
-    plt.savefig('adj_return.png')
-    plt.close()
+    s = my_cv(lambda f, X, Y: sharpe(position(f.predict(X), threshold=1.1), Y))
+    print(np.mean(s), np.median(s))
+
+    # plt.figure()
+    # plt.title('Mean squared error in {k}-fold cross validation'.format(**locals()))
+    # plt.ylabel('Frequency')
+    # plt.xlabel('MSE')
+    # plt.hist(MSE, bins=7, normed=True)
+    # plt.savefig('mse.png')
+    # plt.close()
+
+    # plt.figure()
+    # plt.title('Adjusted return in {k}-fold cross validation'.format(**locals()))
+    # plt.ylabel('Frequency')
+    # plt.xlabel('Adjusted Return (%)')
+    # plt.hist(r, bins=10, normed=True)
+    # plt.savefig('adj_return.png')
+    # plt.close()
+
+    # plt.figure()
+    # plt.title('Sharpe ratio in {k}-fold cross validation'.format(**locals()))
+    # plt.ylabel('Frequency')
+    # plt.xlabel('Sharpe')
+    # plt.hist(s, bins=10, normed=True)
+    # plt.savefig('sharpe.png')
+    # plt.close()
 
 if __name__ == '__main__':
-    debug()
-    # convergence(minN=50, maxN=1500, spaceN=10, mult=3e1, testN=2000)
+    # debug()
+    # parameter_tuning(6, 0.2)
+    convergence(minN=50, maxN=1500, spaceN=10, mult=3e1, testN=2000)
     # cross_val()
