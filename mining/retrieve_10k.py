@@ -1,7 +1,7 @@
 from os import mkdir
 from os.path import join
 import re
-from cache import download
+from mining.cache import download
 from bs4 import BeautifulSoup
 
 def SGML_to_files(sgml_contents):
@@ -46,10 +46,8 @@ def html_to_text(textin):
     try:
         # text = re.sub(r'.*?^ ?part i$.*?^ ?part i *$', '', text, flags=re.MULTILINE | re.DOTALL | re.IGNORECASE)
         start = re.search('^ ?part i[\. \n]', text, re.MULTILINE | re.IGNORECASE).end()
-        print(start)
         text = text[start:]
         start = re.search('^ ?part i[\. \n]', text, re.MULTILINE | re.IGNORECASE).end()
-        print(start)
         text = text[start:]
     except:
         with open('crap.txt', 'w') as f:

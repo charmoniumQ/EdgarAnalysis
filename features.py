@@ -1,17 +1,13 @@
 # coding: utf-8
-import os
 from analysis.analysis import concept_analysis, emotion_analysis, sentiment_analysis
 from stock.stocks import get_ticker, get_avg_stock_quote, get_avg_qtr_stock_quote
-os.chdir('mining')
-from cache import download
-from retrieve_10k import SGML_to_files, get_risk_factors
-from retrieve_index import get_index
-os.chdir('..')
+from mining.cache import download
+from mining.retrieve_10k import SGML_to_files, get_risk_factors
+from mining.retrieve_index import get_index
 import sys
 from raw_data import retrieve_raw_data
 import json
 import pymysql
-
 
 def getAuthDict(file):
     with open(file,'r') as fp:
@@ -147,7 +143,7 @@ def get_predict_features(year, quarter, ticker, path):
     return features
 
 def get_training_features(year, quarter, ticker, path): #we want to predict stock improvement
-    risk_factors = get_risk_facors(path)
+    risk_factors = get_risk_factors(path)
     emotions = emotion_analysis(risk_factors)
     sentiment = sentiment_analysis(risk_factors)
     qtr_stock_price = get_avg_qtr_stock_quote(ticker,year,quarter)

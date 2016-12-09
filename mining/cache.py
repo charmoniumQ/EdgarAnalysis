@@ -3,7 +3,7 @@ from os import mkdir
 from os.path import join, isdir, isfile
 from time import sleep
 
-CACHE_DIR = 'edgar-downloads'
+CACHE_DIR = 'mining/edgar-downloads'
 
 def download(path):
     '''Download a copy of a file and cache it.

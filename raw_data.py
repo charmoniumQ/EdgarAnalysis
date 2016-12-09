@@ -1,11 +1,8 @@
 # coding: utf-8
-import os
 from stock.stocks import get_ticker, get_avg_stock_quote, get_avg_qtr_stock_quote
-os.chdir('mining')
-from cache import download
-from retrieve_10k import SGML_to_files, get_risk_factors
-from retrieve_index import get_index
-os.chdir('..')
+from mining.cache import download
+from mining.retrieve_10k import SGML_to_files, get_risk_factors
+from mining.retrieve_index import get_index
 import sys
 import pymysql
 import json
@@ -14,7 +11,8 @@ def get_viable_index(form_index):
     ticker = ''
     for index_info in form_index:
         company_name = index_info['Company Name']
-        ticker = get_ticker(company_name)
+        idx = company_name.find('\\') - 1
+        ticker = get_ticker(company_name if idx < 0 else company_name[:idx])
         if ticker != '':
             yield (company_name, ticker, index_info['Filename'])
 
