@@ -4,7 +4,8 @@ from sklearn.model_selection import train_test_split, cross_val_score, ShuffleSp
 from features import retrieve_feature_data
 import matplotlib.pyplot as plt
 
-random_state=42
+random_state = 42
+power = 3.05
 
 def s(x):
     '''Maps [0, 1] to [0, inf)'''
@@ -63,7 +64,6 @@ def debug():
     year = None
     total = 2000
     train = 1000
-    power = 3
 
     np.set_printoptions(precision=2, linewidth=150, suppress=True)
     data = retrieve_feature_data(total, year)
@@ -99,11 +99,11 @@ def debug():
     # plt.savefig('actual.png')
     # plt.close()
 
-def convergence(minN, maxN, spaceN, testN, mult, power=3):
+def convergence(minN, maxN, spaceN, testN, mult):
     ns = np.arange(minN, maxN, spaceN)
     plt.figure()
     plt.xlabel('Number of data points')
-    plt.title('Convergence of Ordinary Least Squares Regrssion')
+    plt.title('Convergence of Ordinary Least Squares Regression')
 
     data = retrieve_feature_data(maxN + testN, None)
     X, Y = to_matrix(data, power)
@@ -112,15 +112,17 @@ def convergence(minN, maxN, spaceN, testN, mult, power=3):
     r2 = np.zeros_like(ns, dtype=np.float64)
     m = np.zeros_like(ns, dtype=np.float64)
     reg = LinearRegression()
-    final = reg.fit(X, Y).coef_
+    final = reg.fit(X[:maxN], Y[:maxN]).coef_
     for i, n in enumerate(ns):
-        reg.fit(X[:n], Y[:n])
+        trainX, trainY = X[:n], Y[:n]
+        reg.fit(trainX, trainY)
         params[i] = np.sum(((reg.coef_ - final) * mult)**2)
         r2[i] = reg.score(testX, testY)
         m[i] = mse(np.clip(reg.predict(testX), 0, 10)**(1/power), testY**(1/power))
-    plt.plot(ns, params / params.max(), 'g', label=r'Parameter distance')
-    plt.plot(ns, -np.arctan(r2) / np.pi * 2 , 'r', label='Correlation coefficient')
-    plt.plot(ns, m / m.max(), 'y', label=r'Mean-squared error')
+    plt.ylim(0, 1)
+    plt.plot(ns, params / params.max() * 2.2, 'g', label=r'Parameter distance')
+    plt.plot(ns, -np.arctan(r2) / np.pi * 2, 'r', label='Correlation coefficient')
+    plt.plot(ns, m / m.max() * 0.1, 'y', label=r'Mean-squared error')
     plt.gca().set_yticklabels([])
     plt.legend()
     plt.savefig('convergence.png')
@@ -150,7 +152,7 @@ def parameter_tuning(end, step, N=4000, M=1000, k=30):
     plt.savefig('parameter.png')
     plt.close()
 
-def cross_val(N=4000, M=1000, k=60, power=3):
+def cross_val(N=4000, M=1000, k=60):
     X, Y = to_matrix(retrieve_feature_data(N, None), power)
     reg = LinearRegression()
 
@@ -164,33 +166,35 @@ def cross_val(N=4000, M=1000, k=60, power=3):
     print(np.mean(r), np.median(r))
     s = my_cv(lambda f, X, Y: sharpe(position(f.predict(X), threshold=1.1), Y))
     print(np.mean(s), np.median(s))
+    n = my_cv(lambda f, X, Y: np.sum(f.predict(X) > 0))
+    print(np.mean(n), np.median(n))
 
-    # plt.figure()
-    # plt.title('Mean squared error in {k}-fold cross validation'.format(**locals()))
-    # plt.ylabel('Frequency')
-    # plt.xlabel('MSE')
-    # plt.hist(MSE, bins=7, normed=True)
-    # plt.savefig('mse.png')
-    # plt.close()
+    plt.figure()
+    plt.title('Mean squared error in {k}-fold cross validation'.format(**locals()))
+    plt.ylabel('Frequency')
+    plt.xlabel('MSE')
+    plt.hist(MSE, bins=7, normed=True)
+    plt.savefig('mse.png')
+    plt.close()
 
-    # plt.figure()
-    # plt.title('Adjusted return in {k}-fold cross validation'.format(**locals()))
-    # plt.ylabel('Frequency')
-    # plt.xlabel('Adjusted Return (%)')
-    # plt.hist(r, bins=10, normed=True)
-    # plt.savefig('adj_return.png')
-    # plt.close()
+    plt.figure()
+    plt.title('Adjusted return in {k}-fold cross validation'.format(**locals()))
+    plt.ylabel('Frequency')
+    plt.xlabel('Adjusted Return (%)')
+    plt.hist(r, bins=10, normed=True)
+    plt.savefig('adj_return.png')
+    plt.close()
 
-    # plt.figure()
-    # plt.title('Sharpe ratio in {k}-fold cross validation'.format(**locals()))
-    # plt.ylabel('Frequency')
-    # plt.xlabel('Sharpe')
-    # plt.hist(s, bins=10, normed=True)
-    # plt.savefig('sharpe.png')
-    # plt.close()
+    plt.figure()
+    plt.title('Sharpe ratio in {k}-fold cross validation'.format(**locals()))
+    plt.ylabel('Frequency')
+    plt.xlabel('Sharpe')
+    plt.hist(s, bins=10, normed=True)
+    plt.savefig('sharpe.png')
+    plt.close()
 
 if __name__ == '__main__':
-    # debug()
+    debug()
     # parameter_tuning(6, 0.2)
-    convergence(minN=50, maxN=1500, spaceN=10, mult=3e1, testN=2000)
+    # convergence(minN=50, maxN=1500, spaceN=10, mult=3e1, testN=2000)
     # cross_val()
