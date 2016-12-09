@@ -20,7 +20,7 @@ def to_matrix(data):
         X[i][5] = s((datum['sentiment'] + 1) / 2)
         X[i][6] = datum['sentiment_type']
         Y[i][0] = datum['stock_improvement']
-    return X, Y
+    return np.clip(X, -1, 10), Y
 
 def mse(Y1, Y2):
     return np.sum((Y1 - Y2)**2) / len(Y1)
@@ -59,12 +59,13 @@ def debug():
     year = None
     total = 3000
     train = 1000
-    random_state = 42
+    random_state = 38
 
     np.set_printoptions(precision=2, linewidth=150, suppress=True)
     data = retrieve_feature_data(total, year)
     assert total == len(data), 'only got {} out of {} datapoints from server'.format(len(data), total)
 
+    print('Random state = {random_state}'.format(**locals()))
     X, Y = to_matrix(data)
     trainX, testX, trainY, testY = train_test_split(X, Y, train_size=train/total, random_state=random_state)
     # print('data = \n{!s}'.format(np.hstack((trainX, trainY))))
@@ -74,12 +75,12 @@ def debug():
     # predicted price increase factors
     predY = reg.predict(testX)
     # print('error = \n{!s}'.format(np.hstack((predY, testY, (predY - testY)**2))))
-    print('Coefficients (x1e3) = {!s}'.format(reg.coef_ * 1e13))
+    print('Coefficients (x1e3) = {!s}'.format(reg.coef_ * 1e3))
 
     print('Mean Squared Error = {:.4f}'.format(mse(predY, testY)))
     pos = position(predY)
-    print('Prediction, actual, benchmark, position, return = \n{!s}'.format(np.hstack((predY, testY, benchmark(testY), pos, returns(pos, testY)))))
-    print('Returns = {:.0f}%, Adjusted returns = {:.0f}%, with a Sharpe ratio of {:.2f}'
+    # print('Prediction, actual, benchmark, position, return = \n{!s}'.format(np.hstack((predY, testY, benchmark(testY), pos, returns(pos, testY)))))
+    print('Returns = {:.5f}%, Adjusted returns = {:.5f}%, with a Sharpe ratio of {:.2f}'
           .format((np.sum(returns(pos, testY)) - 1) * 100,
                   np.sum(returns(pos, testY) - benchmark(testY)) * 100,
                   sharpe(pos, testY)))
@@ -164,4 +165,4 @@ def cross_val(N=4000, M=1000, k=60, random_state=42):
 if __name__ == '__main__':
     debug()
     # convergence(minN=50, maxN=1500, spaceN=10, mult=3e1, testN=2000)
-    cross_val()
+    # cross_val()
