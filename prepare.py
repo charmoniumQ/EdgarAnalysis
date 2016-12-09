@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, ShuffleSplit
 from features import retrieve_feature_data
 
 def s(x):
@@ -113,7 +113,7 @@ def convergence(minN, maxN, spaceN, testN, mult):
     plt.savefig('convergence.png')
     plt.close()
 
-def cross_val(N=4000, M=1000, k=60, ranodm_state=42):
+def cross_val(N=4000, M=1000, k=60, random_state=42):
     X, Y = to_matrix(retrieve_feature_data(N, None))
     reg = LinearRegression()
 
