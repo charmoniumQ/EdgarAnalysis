@@ -210,7 +210,7 @@ def retrieve_feature_data(limit,year=None,offset=0,rand=True):
         sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE year = {year} AND UseBit = 1 ORDER BY RAND() LIMIT {limit} OFFSET {offset}".format(year=str(year),limit=str(limit),offset=str(offset))
     else:
         sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE UseBit = 1 ORDER BY RAND() LIMIT {limit} OFFSET {offset}".format(limit=str(limit),offset=str(offset))
-    if not rand: sql = sql.replace("ORDER BY RAND",'')
+    if not rand: sql = sql.replace("ORDER BY RAND()",'')
     cur = conn.cursor()
     cur.execute(sql)
     rows = cur.fetchall()
