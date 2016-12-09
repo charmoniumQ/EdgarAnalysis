@@ -220,10 +220,11 @@ def retrieve_feature_data(limit,year=None,offset=0):
 def analyze_and_store_raw_raw_data(year=None, quarter=None, limit=99999, offset=0):
     store_feature_array_into_db(extract_features_from_raw_array(retrieve_raw_data(year, quarter, limit, offset)))    
 
-def retrieve_features_for_company(name,year):
+def retrieve_features_for_company(name,year, rand=True):
     ticker = get_ticker(name)
     conn = connect_to_db()
     sql = "SELECT name, year, quarter, improvement, anger, disgust, fear, joy, sadness, sentiment, sentiment_type, ticker FROM features WHERE LOWER(REPLACE(REPLACE(REPLACE(CONCAT('%',name,'%'),' ','%'),'\\'',''),',','')) LIKE LOWER(REPLACE(REPLACE(CONCAT('%','{name}','%'),' ','%'),',','')) AND year = {year} AND ticker = '{ticker}'".format(name=name,year=str(year),ticker=ticker)
+    if rand: sql += " ORDER BY RAND()"
     cur = conn.cursor()
     num_rows = cur.execute(sql)
     row = cur.fetchone()
